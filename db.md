@@ -130,3 +130,51 @@ A tuple typically has a header containing metadata (nullability information, siz
 the data is a sequnce of bytes, it is read word by word(46 bits) so if there is an atribute or more fit this size: its ok and add padding not to make the parts of one attribute in multiple words because it can be less efficient to read            
 but if the attribute size more than the word size, the tuple might store a pointer to a separate page or even an external file where the actual data is stored.
 ___
+
+
+## Database Indexes: 
+#### The problem: 
+
+When a query searches for a specific value in a large table, the database might have to perform a` full table scan`, reading every row in every page of the table to find the desired record. This is very slow, especially for tables with millions of rows
+
+#### solutions: 
+`paralles search(multiple threads)`: Using multiple read threads to scan different pages simultaneously can offer some speedup, but introduces complexity on memory and cpu and depends on the system architecture. It still requires reading all pages
+___
+
+`Partitioning: `Dividing the table into smaller portions (parts) based on the value of a specific attribute. This allows the database to only search within the relevant partition, reducing the number of pages to scan. However, partitioning is only effective when searching on the partitioned attribute, and it adds complexity to insertions to add more process to find in which partition we will add. If searching on a different attribute, a full table scan might still be necessary because we cant do partitioning on each attribute.
+
+___
+ `Indexes`: additional structure that helps to access data in a table more quickly, It stores values of certain attributes and pointers to the location of the corresponding data rows on disk.                                        This allows the database to avoid scanning the entire table. Multiple indexes can be created on different attributes.                                       
+  Indexes are particularly useful for point queries (searching for a specific value) and range queries (searching for values within a certain range)
+
+
+ A simple way to imagine an index is a` sorted list` of attribute values, each pointing to the location of the corresponding data. However, searching this sorted list might still require scanning the entire index (linear search(o(n))), which can be slow for large indexes.                                     
+  Using binary search on the index could improve search speed, but it involves random disk access, which is inefficient. Moreover, inserting new data into a sorted list requires shifting subsequent elements, making updates expensive O(n)
+___
+  ` Binary Search Trees`:  is a potential improvement , searching has a logarithmic time complexity but are not always balanced, and an unbalanced tree can degenerate into a linked list, leading to linear search time.
+
+<img src="./pics/Screenshot_25-4-2025_41438_www.youtube.com.jpeg" alt="DBMS Structure" width="500">
+
+
+
+
+
+___
+  and here` B-Tree`  comes :  B-trees are balanced trees where B-Tree from (k) degree each node can have multiple (k)children and (k-1)keys, this structure reduces the number of disk accesses required for a search, searching has a logarithmic time complexity .
+  
+But Insertions in B-trees maintain the balanced structure by splitting nodes when they become full (rebalancing), which adds to the write cost. While B-trees are efficient for point queries, range queries can be inefficient as the required values might be scattered across different parts of the tree, requiring multiple up-and-down traversal. also there is another issue that each node stores pair of attribute value and a pointer to its location in the disk , if we can find a way to remove the pointers , each node can take more keys therefor we can reduce the number of accessed pages. so B+ Trees come.
+
+<img src="./pics/Screenshot_26-4-2025_04036_www.youtube.com.jpeg" alt="DBMS Structure" width="700">
+
+___
+B+ Tree: B+ trees are similar to B-trees, but the data pointers are only stored in the leaf nodes, and the leaf nodes are linked together. Internal nodes only contain keys and pointers to child nodes to make each node take more numbers of keys(attributes).this structure reduces the number of disk accesses required for a search  potentially allowing the entire index or a significant portion of it to reside in memory
+
+This structure makes range queries very efficient as once the starting point of the range is found in the leaf nodes, the subsequent values can be retrieved by simply traversing the linked list of leaf nodes sequentially, minimizing random disk access
+
+
+there is only issue in B+ Trees duplication of keys in the internal nodes and leaf nodes, which requires more storage spac
+
+<img src="./pics/Screenshot_26-4-2025_11730_www.youtube.com.jpeg" alt="DBMS Structure" width="700">
+
+___
+while indexes significantly speed up read operations, they can slow down write operations (inserts, updates, deletes) because the index also needs to be maintained. The choice of using indexes depends on the application's workload (read-intensive vs. write-intensive)
